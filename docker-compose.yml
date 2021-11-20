@@ -1,0 +1,56 @@
+version: '3'
+services:
+  postgres:
+    image: 'postgres:latest'
+    environment:
+      - POSTGRES_PASSWORD=postgres_password
+  redis:
+    image: 'redis:latest'
+  nginx:
+    depends_on:
+      - api
+      - client
+    restart: always
+    build:
+      context: ./nginx
+    ports:
+      - '3050:80'
+  api:
+    build:
+      context: .
+      args:
+        - BUILD_CONTEXT=server
+    volumes:
+      - /base/node_modules
+      - ./packages/server:/base/packages/server
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - PGUSER=postgres
+      - PGHOST=postgres
+      - PGDATABASE=postgres
+      - PGPASSWORD=postgres_password
+      - PGPORT=5432
+    command: yarn workspace server start
+  worker:
+    build:
+      context: .
+      args:
+        - BUILD_CONTEXT=worker
+    volumes:
+      - /base/node_modules
+      - ./packages/worker:/base/packages/worker
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    command: yarn workspace worker start
+  client:
+    stdin_open: true
+    build:
+      context: .
+      args:
+        - BUILD_CONTEXT=client
+    volumes:
+      - /base/node_modules
+      - ./packages/client:/base/packages/client
+    command: yarn workspace client start
