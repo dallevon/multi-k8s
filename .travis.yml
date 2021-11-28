@@ -1,0 +1,24 @@
+sudo: required
+language: generic
+
+services:
+  - docker
+
+before_install:
+  - docker build -t levond/react-test --build-arg BUILD_CONTEXT=client .
+
+script:
+  - docker run -e CI=true levond/react-test yarn workspace client test
+
+after_success:
+  - docker build -t levond/multi-nginx ./nginx
+  - docker build -t levond/multi-client -f Dockerfile.client.prod .
+  - docker build -t levond/multi-server --build-arg BUILD_CONTEXT=server .
+  - docker build -t levond/multi-worker --build-arg BUILD_CONTEXT=worker .
+  # Log in to the docker CLI
+  - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_ID" --password-stdin
+  # Take those images and push them to docker hub
+  - docker push levond/multi-client
+  - docker push levond/multi-nginx
+  - docker push levond/multi-server
+  - docker push levond/multi-worker
