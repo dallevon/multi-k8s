@@ -9,6 +9,7 @@ const App: React.FC = () => (
   <Router>
     <header className={styles.appHeader}>
       <img src={logo} className={styles.appLogo} alt="logo" />
+      <h1 className={styles.header}>Fibonacci Calculator</h1>
       <nav className={styles.nav}>
         <Link to="/">Home</Link>
         <Link to="/otherpage">Other Page</Link>

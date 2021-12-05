@@ -12,7 +12,7 @@ const Fib: React.FC = () => {
   const mounted = useRef(true);
   const previouslySeen = useRef([]);
   const previousValues = useRef({});
-  const dataFetched = useRef(false);
+  const dataFetched = useRef({ values: false, indexes: false });
 
   useEffect(
     () => () => {
@@ -27,15 +27,16 @@ const Fib: React.FC = () => {
 
     const fetchValues = async () => {
       try {
+        dataFetched.current.values = true;
         const { data } = await axios.get('/api/values/current', {
           cancelToken: source.token
         });
-        dataFetched.current = true;
         if (mounted.current && data !== '' && !isEqual(data, previousValues.current)) {
           previousValues.current = data;
           setValues(data);
         }
       } catch (e) {
+        dataFetched.current.values = false;
         const error = e as AxiosError;
         if (axios.isCancel(error)) {
           console.log(error.message);
@@ -46,10 +47,10 @@ const Fib: React.FC = () => {
       }
     };
 
-    !dataFetched.current && fetchValues();
+    !dataFetched.current.values && fetchValues();
 
     return () => {
-      source.cancel('axios request cancelled');
+      !mounted.current && source.cancel('axios request cancelled');
     };
   });
 
@@ -59,15 +60,16 @@ const Fib: React.FC = () => {
 
     const fetchIndexes = async () => {
       try {
+        dataFetched.current.indexes = true;
         const { data } = await axios.get('/api/values/all', {
           cancelToken: source.token
         });
-        dataFetched.current = true;
         if (mounted.current && !isEqual(data, previouslySeen.current)) {
           previouslySeen.current = data;
           setSeeenIndexes(data);
         }
       } catch (e) {
+        dataFetched.current.indexes = false;
         const error = e as AxiosError;
         if (axios.isCancel(error)) {
           console.log(error.message);
@@ -78,10 +80,10 @@ const Fib: React.FC = () => {
       }
     };
 
-    !dataFetched.current && fetchIndexes();
+    !dataFetched.current.indexes && fetchIndexes();
 
     return () => {
-      source.cancel('axios request cancelled');
+      !mounted.current && source.cancel('axios request cancelled');
     };
   });
 
@@ -96,7 +98,8 @@ const Fib: React.FC = () => {
       try {
         await axios.post('/api/values', { index });
         if (mounted.current) {
-          dataFetched.current = false;
+          dataFetched.current.values = false;
+          dataFetched.current.indexes = false;
           setIndex('');
           setError('');
         }
