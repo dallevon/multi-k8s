@@ -45,15 +45,16 @@ app.post('/values', async (req, res) => {
   if (!isNaN(index) && index >= 0) {
     redisClient.hget('values', index, (err, value) => {
       let response;
+      console.log(`redis returned value ${value} for index ${index}`);
       if (!isNaN(value) && value !== null) {
         response = value;
       } else {
         !value && redisClient.hset('values', index, 'Nothing yet!');
+        console.log(`setting redis index ${index} to 'Nothing yet!'`);
         redisPublisher.publish('insert', index);
         response = { working: true };
       }
       pgClient.query('INSERT INTO values(number) VALUES($1)', [index]);
-
       res.send(response);
     });
   } else {
