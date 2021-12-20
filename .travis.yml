@@ -3,34 +3,20 @@ language: generic
 
 services:
   - docker
+env:
+  global:
+    - SHA=$(git rev-parse HEAD)
 
 before_install:
+  # Log in to the docker CLI
+  - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_ID" --password-stdin
   - docker build -t levond/react-test --build-arg BUILD_CONTEXT=client .
 
 script:
   - docker run -e CI=true levond/react-test yarn workspace client test
 
-after_success:
-  - docker build -t levond/multi-nginx ./nginx
-  - docker build -t levond/multi-client -f Dockerfile.client.prod .
-  - docker build -t levond/multi-server --build-arg BUILD_CONTEXT=server .
-  - docker build -t levond/multi-worker --build-arg BUILD_CONTEXT=worker .
-  # Log in to the docker CLI
-  - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_ID" --password-stdin
-  # Take those images and push them to docker hub
-  - docker push levond/multi-client
-  - docker push levond/multi-nginx
-  - docker push levond/multi-server
-  - docker push levond/multi-worker
-
 deploy:
-  provider: elasticbeanstalk
-  region: "us-east-1"
-  app: "multi-docker"
-  env: "Multidocker-env"
-  bucket_name: "elasticbeanstalk-us-east-1-135268407372"
-  bucket_path: "docker-multi"
+  provider: script
+  script: bash ./deploy.sh
   on:
     branch: master
-  access_key_id: $AWS_ACCESS_KEY
-  secret_access_key: $AWS_SECRET_KEY
